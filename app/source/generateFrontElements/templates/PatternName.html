@@ -29,7 +29,8 @@
         <div class="container">
           <h4 class="options text-secundary pb-2">Table of Contents</h4>
           {%for header in header_list %}
-          <p><a href="#{{header}}">Specific {{header}}</a></p>
+          {% set display_name = header.replace('Pattern ', 'Pattern Name ') %}
+          <p><a href="#{{header}}">{{display_name}}</a></p>
           {% endfor %}
         </div>
       </div>
@@ -85,11 +86,13 @@
           <div class="alert alert-danger" role="alert">{{ error_message }}</div>
           {% endif %}
           <section id="specification-ontologists" class="pt-5 px-5">
-            {% for key, pattern in pattern_content_name.items() %}{% if
-            loop.first %}
-            <h4 id="{{ key }}">Specific {{ key }}</h4>
+            {% for key, pattern in pattern_content_name.items() %}
+            {% set display_name = key.replace('Pattern ', 'Pattern Name ') %}
+
+            {% if loop.first %}
+            <h4 id="{{ key }}">{{ display_name }}</h4>
             {% else %}
-            <h4 id="{{ key }}" class="pt-5">Specific {{ key }}</h4>
+            <h4 id="{{ key }}" class="pt-5">{{ display_name }}</h4>
             {% endif %}
             <!--Diagram and image-->
             <div id="container-patterntype">
