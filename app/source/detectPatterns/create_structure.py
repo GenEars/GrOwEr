@@ -64,10 +64,16 @@ anonymous = {}
 #   - value: the URI associated to the namespace
 namespaces = {}
 
+# Variable to store the namespace manager for converting URIs to prefix format
+ns_manager = None
+
 # Dictionary to store the ontologies which have been imported whose:
 #   - key: URI of the ontology
 #   - value: 0 (unchanged)
 ont_import = {}
+
+# Variable to store the ontology base namespace
+ont_base_ns = None
 
 # Variable to store the prefix of the ontology
 ont_prefix = ''
@@ -149,6 +155,8 @@ def create_structure(ontology_path, error_log, flatten, structure_csv_path, stru
                 ont_import = {}
                 aux_g = Graph()
                 anonimizador = 1
+                ns_manager = None
+                ont_base_ns = None
 
                 # Parse ontology
                 parse_ontology(ont_path, error_log)
@@ -202,7 +210,7 @@ def iterate_class_axiom(s, class_axiom, structure_id, ont_prefix, error_log, fla
             structure_name.write("\n")
             structure_name.write(f'Ontology: {ont_prefix}\n')
             structure_name.write(f'Structure: {ont_prefix}-{structure_id}\n')
-            structure_name.write(f'{s}\n')
+            structure_name.write(f'{uri_to_prefix(s)}\n')
             structure_name.write(f'  |{class_axiom}\n')
 
             # Write the structure (writing the type of the terms)
@@ -336,8 +344,7 @@ def write_object(o, error_log):
                 term_name = 'Blank node'
         
         else:
-            term_name = o
-            # In this case the term has an URI
+            term_name = uri_to_prefix(o)
         
     except:
         # In this case the type of the term has not been obtained
@@ -352,7 +359,7 @@ def write_object(o, error_log):
         
         else:
             # In this case the term has an URI
-            term_name = o
+            term_name = uri_to_prefix(o)
             term_type = '#Unknown'
     
     return term_name, term_type
@@ -508,11 +515,65 @@ def get_prefix(term_uri):
     return term_uri[0:last_hash_or_slash]
 
 # Function to store the namespaces, which are definined in an ontology, in a dictionary called "namespaces".
-def get_namespaces(g_namespaces):
+def get_namespaces(g_namespaces, g_namespace_manager, g):
+    global ns_manager, ont_base_ns
+    ns_manager = g_namespace_manager
+    
+    try:
+        ont_base_ns = None
+        for s, p, o in g:
+            if str(p) == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' and str(o) == 'http://www.w3.org/2002/07/owl#Ontology':
+                ont_base_ns = str(s)
+                break
+    except:
+        ont_base_ns = None
 
     # Iterate the namespaces defined in the ontology
     for prefix, suffix in g_namespaces:
-        namespaces[prefix] = suffix
+        namespaces[prefix] = str(suffix)
+
+# Function to convert a URI to prefix format (e.g., prefix:specific)
+def uri_to_prefix(uri):
+    global ns_manager, ont_base_ns, ont_prefix
+    try:
+        if uri.startswith('<') and uri.endswith('>'):
+            uri = uri[1:-1]
+        
+        if ns_manager is not None:
+            try:
+                prefix, ns, name = ns_manager.compute_qname(URIRef(uri))
+                if prefix and not prefix.startswith('ns'):
+                    return f"{prefix}:{name}"
+            except:
+                pass
+        
+        for prefix, ns_uri in namespaces.items():
+            if uri.startswith(ns_uri):
+                suffix = uri[len(ns_uri):]
+                if suffix:
+                    return f"{prefix}:{suffix}"
+        
+        if ont_base_ns and uri.startswith(ont_base_ns):
+            suffix = uri[len(ont_base_ns):]
+            if suffix:
+                prefix_lower = ont_prefix.lower().replace('.rdf', '').replace('.owl', '')
+                return f"{prefix_lower}:{suffix}"
+        
+        if '#' in uri:
+            ns_part, name = uri.rsplit('#', 1)
+            if name:
+                return name
+        
+        if '/' in uri:
+            ns_part, name = uri.rsplit('/', 1)
+            if name and '.' not in name:
+                return name
+        
+        return uri
+    except:
+        if uri.startswith('<') and uri.endswith('>'):
+            return uri[1:-1]
+        return uri
 
 # This function get the URI of the terms which have been identified by rdflib. There are three cases:
 #   - URI: the term represents an URI
@@ -572,7 +633,7 @@ def parse_ontology(ont_path, error_log):
         return
 
     # Load ontology namespaces
-    get_namespaces(g.namespaces())
+    get_namespaces(g.namespaces(), g.namespace_manager, g)
     # Parse ontology owl:imports
     parse_imports(g, error_log)
 
