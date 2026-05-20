@@ -28,20 +28,37 @@ Ontologies are formal knowledge models that describe concepts and relationships 
 
 ## Usage
 
-### Running it from Docker
+### Using Docker and a local image
 
-#### Copy the project
+1. Copy the project:
 ```bash
 git clone https://github.com/Sergio-Carulli/Patrones.git
 ```
-#### Docker
-1. Intall and run Docker Desktop
-2. Open a command line located in the Chowlk repository and execute:
+2. Install and run [Docker](https://docs.docker.com/) Desktop
+3. Open a command line located in the Chowlk repository and launch GrOwEr:
 ```bash
 docker compose up
 ```
 
-### Running it from the command line
+### Using Docker and a community image
+
+1. Download and launch the latest GrOwEr image:
+```shell
+docker run \
+  -d \
+  --interactive \
+  --rm \
+  --name oeg-grower \
+  -p 5000:5000 \
+  jarueda/oeg-grower:latest
+```
+2. Open the GrOwEr Web interface with your favorite Web browser: http://127.0.0.1:5000
+3. Stop the container when done with using GrOwEr:
+```shell
+docker container stop oeg-grower
+```
+
+### Using Python from the command line
 
 #### Prerequisites
 * Python3.10+
@@ -85,3 +102,15 @@ python3 app.py \
   -output ./out \
   -patterns both    
 ```
+
+## Copyright
+
+Copyright (c) 2025-2026, Ontology Engineering Group, Universidad Politécnica de Madrid. All rights reserved.
+
+## License
+
+[Apache License 2.0](LICENSE)
+
+## Maintainer
+
+* María Poveda-Villalón (project lead)
